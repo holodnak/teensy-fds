@@ -8,3 +8,5 @@
 *.o
 
 .dep
+
+allnight.c

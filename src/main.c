@@ -5,6 +5,7 @@
 #include "print.h"
 #include "ks0108.h"
 #include "ramadapter.h"
+#include "SystemFont5x7.h"
 
 #define CPU_PRESCALE(n) (CLKPR = 0x80, CLKPR = (n))
 #define CPU_16MHz       0x00
@@ -23,10 +24,22 @@ int main(void)
 
   usb_init();
 
+  ramadapter_init();
+  ks0108_init(0);
+  ks0108_clearscreen(0);
+  ks0108_selectfont(System5x7,0);
+
   for(;;) {
 
-    print("test!\n");
-
-    _delay_ms(1000);
+    ks0108_gotoxy(0,8);
+    if(ramadapter_scanmedia() == 0)
+      ks0108_puts("scanmedia: no \n");
+    else
+      ks0108_puts("scanmedia: yes\n");
+    ks0108_gotoxy(0,32);
+    if(ramadapter_stopmotor() == 0)
+      ks0108_puts("stopmotor: no \n");
+    else
+      ks0108_puts("stopmotor: yes\n");
   }
 }
