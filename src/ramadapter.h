@@ -18,17 +18,14 @@ typedef struct rastate_s {
   u8 write;
 } rastate_t;
 
+extern rastate_t rastate;
+
 void ramadapter_init(void);
 void ramadapter_mediaset(u8 state);
 void ramadapter_motoron(u8 state);
 void ramadapter_ready(u8 state);
 void ramadapter_rwmedia(u8 state);
-u8 ramadapter_stopmotor(void);
-u8 ramadapter_scanmedia(void);
-u8 ramadapter_write(void);
-
 void ramadapter_poll(void);
-
-rastate_t *ramadapter_getstate(void);
+u8 ramadapter_tick(void);
 
 #endif

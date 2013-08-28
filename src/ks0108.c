@@ -368,6 +368,11 @@ void ks0108_gotoxy(u8 x,u8 y)
   ks0108_writecommand(cmd,chip);          // set x address on active chip  
 }
 
+void ks0108_invert(u8 state)
+{
+  inverted = state;
+}
+
 //font stuff
 uint8_t ReadPgmData(uint8_t* ptr) {  // note this is a static function
   return pgm_read_byte(ptr);

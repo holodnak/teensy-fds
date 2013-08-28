@@ -23,6 +23,7 @@ void ks0108_writecommand(u8 cmd,u8 chip);
 u8 ks0108_readdata(void);
 void ks0108_writedata(uint8_t data);
 void ks0108_gotoxy(u8 x,u8 y);
+void ks0108_invert(u8 state);
 
 void ks0108_selectfont(u8 *font,FontCallback callback);
 void ks0108_printnumber(long n);

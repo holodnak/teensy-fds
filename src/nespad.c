@@ -29,7 +29,6 @@ void nespad_poll()
   _delay_ms(1);
   PORTD &= ~4;
   ret = (PIND & 0x10) >> 4;
-  _delay_ms(1);
   for(i=0;i<7;i++) {
     PORTD |= 8;
     _delay_ms(1);

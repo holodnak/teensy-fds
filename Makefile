@@ -50,7 +50,9 @@ SRC = src/main.c \
 	src/print.c \
 	src/ks0108.c \
 	src/ramadapter.c \
-	src/nespad.c
+	src/nespad.c \
+	src/menu.c \
+	src/util.c
 
 # MCU name, you MUST set this to match the board you are using
 # type "make clean" after changing this, so all files will be rebuilt
