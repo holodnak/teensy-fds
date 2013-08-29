@@ -91,6 +91,7 @@ static void handle_start(void)
   ks0108_clearscreen(0);
   ks0108_gotoxy(0,0);
   ks0108_puts("Running...");
+  entermenu(0);
 }
 
 static void handle_options(void)
@@ -105,10 +106,6 @@ static void handle_debug(void)
 
 static void handle_bootloader(void)
 {
-  ks0108_clearscreen(0);
-  ks0108_gotoxy(0,56);
-  ks0108_puts("Entering bootloader...");
-  ks0108_gotoxy(0,0);
   bootloader();
 }
 
@@ -123,7 +120,8 @@ menu_t rootmenu[] = {
 
 void menu_init(void)
 {
-  entermenu((menu_t*)&rootmenu);
+  selection = 0;
+  curmenu = (menu_t*)&rootmenu;
 }
 
 static void drawmenu(menu_t *menu)

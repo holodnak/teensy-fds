@@ -30,17 +30,87 @@ since, the disk drive can NOT turn the disk at a constant speed. Even though
 it may seem constant, there is a small varying degree in rotation speed, due 
 to it's physical architecture.
 
-//16000000 / 96400 = 165.97510373443983402489626556017
-//16000000 / 8 / 96400 = 20.746887966804979253112033195021
+16000000 / 96400 = 165.97510373443983402489626556017
+16000000 / 166 = 96385.542168674698795180722891566
 
-166
+166 is close enough
+166 / 2 = 83 for clock up -> down transitioning
 */
 
-volatile u8 timerint;
+volatile u8 toggle;
+volatile u8 sending;
 
+//buffer for storing disk data read off of the disk
+volatile u8 bufferpos,curbuffer;
+volatile u8 buffer[2][256];
+
+//total size of the current block we are sending (includes start byte and crc)
+volatile int blocksize;
+
+//for when disk is being read from a gap period
+volatile u16 gapperiod;
+
+//the current bit/byte being output
+volatile u8 outbit,outbyte;
+
+//number of bits from the current byte being output
+volatile u8 bitssent;
+
+//for requesting a buffer be filled (0 = do nothing, 1 = fill buffer 1, 2 = fill buffer 2)
+volatile u8 fillbuffer;
+
+//this flag is set when we are transferring to/from the ram adapter
+volatile u8 transfer;
+
+//timer interrupt for sending data out to the ram adapter
 ISR(TIMER1_COMPA_vect)
 {
-  timerint = 1;
+  //if we are not transferring, return
+  if(transfer == 0)
+    return;
+
+  //toggle the phony clock
+  toggle ^= 1;
+
+  //if this is gap period just keep toggling with the rate
+  if(gapperiod) {
+    PORTF ^= 0x10;
+    return;
+  }
+
+  //clock is low, beginning of the clock
+  if(toggle == 0) {
+
+    //output byte to pin
+    if((outbyte >> bitssent) & 1) {
+      PORTF |= 0x10;
+    }
+    else {
+      PORTF &= ~0x10;
+    }
+
+    //increment bit counter
+    bitssent++;
+
+    //see if we have sent the entire byte
+    if(bitssent == 8) {
+      bitssent = 0;
+
+      //get next byte from the buffer
+      outbyte = buffer[curbuffer][bufferpos++];
+
+      //if that was the last byte, request buffer be filled and switch buffers
+      if(bufferpos == 0) {
+        fillbuffer = curbuffer;
+        curbuffer ^= 1;
+      }
+    }
+  }
+
+  //clock going high
+  else {
+    PORTF ^= 0x10;
+  }
 }
 
 u16 crc;
@@ -61,9 +131,11 @@ static void updatecrc(u8 data)
   }
 }
 
+//current position on the disk
 int diskpos = 0;
+
+//current disk side
 u8 diskside = 0;
-u8 diskbyte;
 
 static u8 getdiskbyte(void)
 {
@@ -76,10 +148,6 @@ static u8 getdiskbyte(void)
     data = pgm_read_byte(allnight2 + (pos - 32758));
   return(data);
 }
-
-u8 bitssent;
-u8 needbyte;
-u8 sending;
 
 /*
  If the RAM adaptor is going to attempt writing to the media during the 
@@ -158,8 +226,8 @@ void ramadapter_init(void)
   //initialize timer (for sending data)
   TCCR1B |= (1 << WGM12); // Configure timer 1 for CTC mode
   TIMSK1 |= (1 << OCIE1A); // Enable CTC interrupt
-  TCNT1   = 166;
-//  OCR1A   = 166;
+//  TCNT1   = 83;
+  OCR1A   = 83;
   TCCR1B |= 1; // Start timer at Fcpu
 
   ramadapter_mediaset(1);
@@ -167,17 +235,16 @@ void ramadapter_init(void)
   ramadapter_ready(0);
 //  ramadapter_rwmedia(1);
 
-  bitssent = 0;
-  needbyte = 1;
   diskpos = 0;
   diskside = 0;
-  sending = 0;
+  transfer = 0;
+  bitssent = 0;
+  toggle = 0;
 }
 
 //returns 1 if we are currently sending data
 u8 ramadapter_tick(void)
 {
-
   //poll ramadapter inputs
   ramadapter_poll();
 
@@ -189,40 +256,82 @@ u8 ramadapter_tick(void)
 //  ramadapter_ready(rastate.scanmedia);
   ramadapter_ready((rastate.scanmedia && rastate.motoron) ? 1 : 0);
 
+  //see if we need more data
+  if(fillbuffer) {
+    //fill buffer here!
+    fillbuffer = 0;
+  }
+
   //check if timer interrupt has happened
-  if(timerint) {
+/*  if(timerint) {
+
+    //see if we are sending data
     if(sending) {
+
+      //listen to 'stopmotor' command
       if(rastate.stopmotor) {
         sending = 0;
         ramadapter_motoron(0);
       }
+
+      //output data
+      outbit = (diskbyte >> bitssent) & 1;
+      if(outbit) {
+        PORTF |= 0x10;
+      }
+      else {
+        PORTF &= ~0x10;
+      }
+
+      //increment sent bits count and check if we need more data
+      bitssent++;
+      if(bitssent == 8) {
+        needbyte = 1;
+        bitssent = 0;
+      }
+    }
+  }*/
+
+  //if we are sending/recieving data, tell main loop to not do anything!
+  if(transfer) {
+
+    //listen to 'stopmotor' command
+    if(rastate.stopmotor) {
+      transfer = 0;
+      ramadapter_motoron(0);
+    }
+
+    return(1);
+  }
+
+  //if the motor is running...
+  if(rastate.stopmotor == 0) {
+    ramadapter_motoron(1);
+
+    //...and ram adapter set scanmedia, we must be transferring data
+    if(rastate.scanmedia) {
+
+      //set transfer flag
+      transfer = 1;
+
+      //set gap period delay
+      gapperiod = 14000;
+
+      //fill both of the buffers now!
+      fillbuffer = 1 | 2;
+      //fill them here!
+
+      //setup data transferring variables
+      curbuffer = 0;
+      bufferpos = 0;
+
+      //prime outbyte with data
+      outbyte = buffer[curbuffer][bufferpos++];
+
+      //tell main loop we need all cpu we can get
       return(1);
     }
   }
-
-  //listen to stop motor
-  if(rastate.stopmotor == 0) {
-    ramadapter_motoron(1);
-    if(rastate.scanmedia)
-      sending = 1;
-  }
-
-/*  if(needbyte) {
-    diskbyte = getdiskbyte();
-    needbyte = 0;
-  }
-
-  if(sending) {
-    if((diskbyte >> bitssent) & 1)
-      PORTF |= 0x10;
-    else
-      PORTF &= ~0x10;
-    bitssent++;
-    if(bitssent == 8) {
-      needbyte = 1;
-      bitssent = 0;
-    }
-  }*/
 
   return(0);
 }

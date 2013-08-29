@@ -107,10 +107,10 @@ extern "C"
     #define select_card() PORTB &= ~(1 << PORTB0)
     #define unselect_card() PORTB |= (1 << PORTB0)
 #else
-    #define configure_pin_mosi() DDRB |= (1 << DDB2)
-    #define configure_pin_sck() DDRB |= (1 << DDB1)
-    #define configure_pin_ss() DDRB |= (1 << DDB0)
-    #define configure_pin_miso() DDRB &= ~(1 << DDB3)
+    #define configure_pin_mosi() DDRB |= (1 << 2)
+    #define configure_pin_sck() DDRB |= (1 << 1)
+    #define configure_pin_ss() DDRB |= (1 << 0)
+    #define configure_pin_miso() DDRB &= ~(1 << 3)
 
     #define select_card() PORTB &= ~(1 << PORTB0)
     #define unselect_card() PORTB |= (1 << PORTB0)
@@ -120,8 +120,10 @@ extern "C"
 #define configure_pin_available() DDRB &= ~(1 << DDB4)
 #define configure_pin_locked() DDRB &= ~(1 << DDB5)
 
-#define get_pin_available() (PINB & (1 << PINB4))
-#define get_pin_locked() (PINB & (1 << PINB5))
+//#define get_pin_available() (PINB & (1 << PINB4))
+//#define get_pin_locked() (PINB & (1 << PINB5))
+#define get_pin_available() 0
+#define get_pin_locked() 1
 
 #if SD_RAW_SDHC
     typedef uint64_t offset_t;
@@ -143,4 +145,3 @@ extern "C"
 #endif
 
 #endif
-

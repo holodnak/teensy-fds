@@ -10,7 +10,9 @@
 
 #include <string.h>
 #include <avr/io.h>
+#include <avr/pgmspace.h>
 #include "sd_raw.h"
+#include "../../src/ks0108.h"
 
 /**
  * \addtogroup sd_raw MMC/SD/SDHC card raw access
@@ -160,7 +162,7 @@ static uint8_t sd_raw_card_type;
 
 /* private helper functions */
 static void sd_raw_send_byte(uint8_t b);
-static uint8_t sd_raw_rec_byte();
+static uint8_t sd_raw_rec_byte(void);
 static uint8_t sd_raw_send_command(uint8_t command, uint32_t arg);
 
 /**
@@ -169,7 +171,7 @@ static uint8_t sd_raw_send_command(uint8_t command, uint32_t arg);
  *
  * \returns 0 on failure, 1 on success.
  */
-uint8_t sd_raw_init()
+uint8_t sd_raw_init(void)
 {
     /* enable inputs for reading card status */
     configure_pin_available();
@@ -197,9 +199,14 @@ uint8_t sd_raw_init()
     /* initialization procedure */
     sd_raw_card_type = 0;
     
-    if(!sd_raw_available())
+    if(!sd_raw_available()) {
+        ks0108_gotoxy(0,0);
+        ks0108_puts("card not available\n");
         return 0;
+    }
 
+    ks0108_gotoxy(0,0);
+    ks0108_puts("card available...\n");
     /* card needs 74 cycles minimum to start up */
     for(uint8_t i = 0; i < 10; ++i)
     {
@@ -221,9 +228,13 @@ uint8_t sd_raw_init()
         if(i == 0x1ff)
         {
             unselect_card();
+            ks0108_gotoxy(0,8);
+            ks0108_puts("error resetting\n");
             return 0;
         }
     }
+    ks0108_gotoxy(0,8);
+    ks0108_puts("card reset\n");
 
 #if SD_RAW_SDHC
     /* check for version of SD card specification */
@@ -336,7 +347,7 @@ uint8_t sd_raw_init()
  *
  * \returns 1 if the card is available, 0 if it is not.
  */
-uint8_t sd_raw_available()
+uint8_t sd_raw_available(void)
 {
     return get_pin_available() == 0x00;
 }
@@ -347,7 +358,7 @@ uint8_t sd_raw_available()
  *
  * \returns 1 if the card is locked, 0 if it is not.
  */
-uint8_t sd_raw_locked()
+uint8_t sd_raw_locked(void)
 {
     return get_pin_locked() == 0x00;
 }
@@ -374,7 +385,7 @@ void sd_raw_send_byte(uint8_t b)
  * \returns The byte which should be read.
  * \see sd_raw_send_byte
  */
-uint8_t sd_raw_rec_byte()
+uint8_t sd_raw_rec_byte(void)
 {
     /* send dummy data for receiving some */
     SPDR = 0xff;
@@ -820,7 +831,7 @@ uint8_t sd_raw_write_interval(offset_t offset, uint8_t* buffer, uintptr_t length
  * \returns 0 on failure, 1 on success.
  * \see sd_raw_write
  */
-uint8_t sd_raw_sync()
+uint8_t sd_raw_sync(void)
 {
 #if SD_RAW_WRITE_BUFFERING
     if(raw_block_written)

@@ -52,7 +52,11 @@ SRC = src/main.c \
 	src/ramadapter.c \
 	src/nespad.c \
 	src/menu.c \
-	src/util.c
+	src/util.c \
+	lib/sd-reader/fat.c \
+	lib/sd-reader/sd_raw.c \
+	lib/sd-reader/partition.c \
+	lib/sd-reader/byteordering.c
 
 # MCU name, you MUST set this to match the board you are using
 # type "make clean" after changing this, so all files will be rebuilt

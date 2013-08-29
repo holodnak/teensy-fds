@@ -3,10 +3,15 @@
 #include <avr/pgmspace.h>
 #include <util/delay.h>
 #include "types.h"
+#include "ks0108.h"
 
 void bootloader(void)
 {
   cli();
+  ks0108_clearscreen(0);
+  ks0108_gotoxy(0,56);
+  ks0108_puts("Entering bootloader...");
+  ks0108_gotoxy(0,0);
   // disable watchdog, if enabled
   // disable all peripherals
   UDCON = 1;
