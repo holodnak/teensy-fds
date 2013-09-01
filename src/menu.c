@@ -99,6 +99,11 @@ static void handle_options(void)
   
 }
 
+static void handle_dump(void)
+{
+  
+}
+
 static void handle_debug(void)
 {
   entermenu((menu_t*)&debugmenu);
@@ -113,6 +118,7 @@ menu_t rootmenu[] = {
   {T_TITLE, "Main Menu",  0},
   {T_ITEM,  "Start",      handle_start},
   {T_ITEM,  "Options",    handle_options},
+  {T_ITEM,  "Dump",       handle_dump},
   {T_ITEM,  "Debug",      handle_debug},
   {T_ITEM,  "Bootloader", handle_bootloader},
   {T_END,   "",           0},
